@@ -1,0 +1,2 @@
+# python
+numpy, pyqt5
