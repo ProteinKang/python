@@ -1,0 +1,47 @@
+## PyQt5 PushButton Sample 1
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+import sys
+
+class Ui_MainWindow(object):
+
+    def setupUi(self, MainWindow):
+        # Main Window Size
+        MainWindow.setGeometry(300,300,500,300)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+
+        # adding pushbutton
+        self.pushButton = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton.setGeometry(QtCore.QRect(10, 10, 120, 40))
+
+        # adding signal and slot
+        self.pushButton.clicked.connect(self.callfiles)
+
+        # Label 초기 상태 설정
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setGeometry(QtCore.QRect(10, 50, 300, 30))
+        self.label.setText("파일을 선택해주세요")
+
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.pushButton.setText(_translate("MainWindow", "Push Button"))
+
+    def callfiles(self):
+        self.label.setText("파일이 선택되었습니다")
+        # self.pushButton.hide() # push button 숨기고 싶을 때 사용
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+
+    sys.exit(app.exec_())
