@@ -1,0 +1,72 @@
+## PyQt5 PushButton Sample 1
+
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QListWidgetItem
+import sys
+import os
+import tkinter as tk
+from tkinter import filedialog
+import numpy as np
+
+os.getcwd() #현재의 파일경로 획득
+
+class Ui_MainWindow(object):
+
+    def setupUi(self, MainWindow):
+        # Main Window Size
+        MainWindow.setGeometry(300,300,500,300)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+
+        # adding pushbutton
+        self.pushButton = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton.setGeometry(QtCore.QRect(10, 10, 120, 40))
+
+        # adding signal and slot
+        self.pushButton.clicked.connect(self.callfiles)
+
+        # adding ListWidget
+        self.listWidget = QtWidgets.QListWidget(self.centralwidget)
+        self.listWidget.setGeometry(QtCore.QRect(10, 100, 460, 100))
+
+        # Label 초기 상태 설정
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setGeometry(QtCore.QRect(10, 50, 460, 40))
+        self.label.setText("'파일 불러오기'를 눌러 파일을 선택해주세요 \n")
+
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+        # UI내 Label Parameter 삽입
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "Smart File 분석 프로그램"))
+        self.pushButton.setText(_translate("MainWindow", "파일 불러오기"))
+
+        # Pushbutton 누를 시 작동 로직
+    def callfiles(self):
+        root = tk.Tk()
+        root.withdraw()
+        file_path = filedialog.askopenfilename()  # 파일선택 GUI열기 (Windows기본창)
+        head,tail = os.path.split(file_path)  # 파일위치(path)와 파일명(tail) 구분시키기
+        
+        if len(file_path)==0:
+            tail = ""
+            self.listWidget.clear()  # List항목 삭제
+            QListWidgetItem(tail, self.listWidget)  # List항목 입력
+            self.label.setText("파일이 선택되지 않았습니다. \n"
+                               "다시 '파일 불러오기'를 눌러 파일을 선택해주세요")
+        else:
+            self.listWidget.clear()  # List항목 삭제
+            QListWidgetItem(tail, self.listWidget)  # List항목 입력          
+            self.label.setText("파일이 선택되었습니다 \n")
+
+        # self.pushButton.hide() # push button 숨기고 싶을 때 사용
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())
