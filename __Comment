@@ -1,0 +1,28 @@
+# exe 파일 만들어주는 pyinstaller install하기
+# Terminal에서 실행할 것
+pip install pyinstaller
+
+# 실행파일 만들기 기본형
+pyinstaller 파일명.py
+
+# 콘솔창없이 실행하기
+pyinstaller -w 파일명.py
+
+# exe 파일하나만 만들기 (부가적인 파일안생기는 대신 exe파일 용량이 커짐)
+pyinstaller -F 파일명.py
+
+# 옵션기능은 중복사용 가능함
+ex)
+pyinstaller -w -F 파일명.py
+
+# Error 대처법
+1. 현상1
+ - 실행파일 실행시 name 'defaultParams' is not defined 메세지 띄우면 실행안됨
+ - 실행파일 만드는 도중 발생하는 runw.exe 파일 관련 Error
+   해결1
+   ** 파이썬 업데이트
+      d:\python\venv\scripts\python.exe -m pip install --upgrade pip
+   해결2
+   ** pyinstaller 이름을 가진 관련 Library 모두 설치
+   해결3
+   ** pycharm 관리자모드로 실행후 pyinstaller실행
