@@ -1,0 +1,439 @@
+from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtWidgets import QListWidgetItem, QWidget, QRadioButton, QGroupBox, QBoxLayout, QApplication, QGridLayout
+from PyQt5.QtWidgets import *
+import sys
+import os
+import tkinter as tk
+from tkinter import filedialog
+import numpy as np
+import matplotlib.pylab as plt
+import matplotlib.font_manager as fm
+import matplotlib.cm as get_cmap
+import addcopyfighandler
+import mplcursors
+
+os.getcwd()  # 현재의 파일경로 획득
+
+# def FontDefine(fm,font_name,font_size):
+#     font_properties = fm.FontProperties(fname="C:\\Windows\\Fonts\\"+font_name, size=font_size)
+#     return font_properties
+def show_annotation(sel):
+    global xp, yp
+    ind = int(sel.target.index)
+    # frac = sel.target.index - ind
+    x, y = sel.target
+    # sel.annotation.set_text(f'Data:{sel.artist.get_label()}\nIndex:{ind} \nX:{x:.3f} Y:{y:.3f}')
+    if xp == 0 and yp ==0:
+        sel.annotation.set_text(f'Index:{ind} \nX:{x:.0f} Y:{y:.0f}')
+    elif xp == 1 and yp ==0:
+        sel.annotation.set_text(f'Index:{ind} \nX:{x:.1f} Y:{y:.0f}')
+    elif xp == 0 and yp ==1:
+        sel.annotation.set_text(f'Index:{ind} \nX:{x:.0f} Y:{y:.1f}')
+    elif xp == 1 and yp ==1:
+        sel.annotation.set_text(f'Index:{ind} \nX:{x:.1f} Y:{y:.1f}')
+    # elif xp == 0 and yp ==3:
+    #     sel.annotation.set_text(f'Index:{ind} \nX:{x:.0f} Y:{y:.3f}')
+    # elif xp == 1 and yp ==3:
+    #     sel.annotation.set_text(f'Index:{ind} \nX:{x:.1f} Y:{y:.3f}')
+    else:
+        sel.annotation.set_text(f'Index:{ind} \nX:{x:.3f} Y:{y:.3f}')
+
+
+# 파일분석 Main Function
+def FileAnalyzer(filename):
+    global item, xAxisSignal, yAxisSignal, xp, yp
+    filename1 = filename[0]
+    f = open(filename1, "r")  # 데이터 읽기
+    data1 = np.genfromtxt(f)  # data변수에 데이터 쓰기
+    f.close()
+    data = data1[:, 1:]
+
+    TotalNum = len(data)
+    d = np.zeros((TotalNum, 26))
+    d[:, 0] = np.arange(0, TotalNum, 1)  # Data Number
+    d[:, 1] = np.arange(0, TotalNum * 0.1, 0.1)  # Time
+    d[:, 2] = data[:, 6] * 256 + data[:, 7]  # Request RPM
+    d[:, 3] = data[:, 8] * 256 + data[:, 9]  # Current RPM
+    d[:, 4] = data[:, 33] * 256 + data[:, 34]  # Water Frequency
+    d[:, 5] = data[:, 12]  # Load Value
+    d[:, 6] = data[:, 13]  # Load Level
+    d[:, 7] = data[:, 22]  # Life Mode Count
+    d[:, 8] = data[:, 16]  # Dehydration Step Main factor
+    d[:, 9] = data[:, 17]  # Dehydration Step Detail factor
+    d[:, 10] = data[:, 18] * 256 + data[:, 19]  # FX Vibration
+    d[:, 11] = data[:, 23] * 256 + data[:, 24]  # FY Vibration
+    d[:, 12] = data[:, 25] * 256 + data[:, 26]  # FZ Vibration
+    d[:, 13] = data[:, 20] * 256 + data[:, 21]  # RY Vibration
+    d[:, 14] = data[:, 27] * 256 + data[:, 28]  # RZ Vibration
+    d[:, 15] = data[:, 14] * 256 + data[:, 15]  # UB Current
+    d[:, 16] = data[:, 10] * 256 + data[:, 11]  # UB Min
+    d[:, 17] = data[:, 39] * 256 + data[:, 40]  # UB Max
+    d[:, 18] = data[:, 41] * 256 + data[:, 42]  # Fast UB
+    d[:, 19] = data[:, 52]  # Tub Vibration(VM-83 or NI)
+    d[:, 20] = data[:, 53] * 1000  # Cabinet Vibration(VM-83 or NI)
+    d[:, 21] = data[:, 43]  # Rotary Direction
+    d[:, 22] = data[:, 35] * 256 + data[:, 36]  # D Axis Current
+    d[:, 23] = data[:, 37] * 256 + data[:, 38]  # Q Axis Current
+    d[:, 24] = data[:, 41] * 256 + data[:, 42]  # Pump Motor RPM
+    d[:, 25] = data[:, 41] * 256 + data[:, 42]  # Pump Motor Target RPM
+
+    # Matplotlib Mode / mplcursors를 통해서 Matlab과 비슷하게 Datatip을 Multiple로 운영가능함
+
+    if xAxisSignal == "TIME":
+        x = 1; xp = 1
+
+    elif xAxisSignal == "RPM":
+        x = 3; xp = 0
+    elif xAxisSignal == "DATA":
+        x = 0; xp = 0
+
+    if yAxisSignal == "UB CURRENT":
+        y = 15; yp = 0
+    elif yAxisSignal == "Current RPM":
+        y = 3; yp = 0
+    elif yAxisSignal == "Request RPM":
+        y = 2; yp = 0
+    elif yAxisSignal == "FX Vibration":
+        y = 10; yp = 0
+    elif yAxisSignal == "FY Vibration":
+        y = 11; yp = 0
+    elif yAxisSignal == "FZ Vibration":
+        y = 12; yp = 0
+    elif yAxisSignal == "RY Vibration":
+        y = 13; yp = 0
+    elif yAxisSignal == "Fast UB":
+        y = 18; yp = 0
+    elif yAxisSignal == "Load Level":
+        y = 5; yp = 0
+    elif yAxisSignal == "Load Level Value":
+        y = 6; yp = 0
+    elif yAxisSignal == "Pump Current RPM":
+        y = 24; yp = 0
+    elif yAxisSignal == "Pump Target RPM":
+        y = 25; yp = 0
+    elif yAxisSignal == "'D'Axis Current":
+        y = 22; yp = 0
+    elif yAxisSignal == "'Q'Axis Current":
+        y = 23; yp = 0
+    elif yAxisSignal == "Tub Vibration[mm]":
+        y = 19; yp = 0
+    elif yAxisSignal == "Cabinet Vibration[um]":
+        y = 20; yp = 0
+    else:
+        y = 0; yp = 0
+
+    fig, ax = plt.subplots()
+    fig.canvas.set_window_title(item)
+    ax.plot(d[:, x], d[:, y], label=xAxisSignal + " V.S. " + yAxisSignal)
+    ax.legend()
+    cursor = mplcursors.cursor(multiple=True)
+    cursor.connect("add", show_annotation)
+    plt.show()
+
+
+# GUI Main Window
+class MyWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setupUI()
+
+    def setupUI(self):
+        global xAxisSignal,yAxisSignal, xp, yp
+        xAxisSignal = "TIME"
+        yAxisSignal = "RPM"
+
+        # Main Window Size
+        self.setGeometry(100, 50, 700, 700)
+        self.centralwidget = QtWidgets.QWidget()
+
+        # 제목
+        self.labelmain = QtWidgets.QLabel(self.centralwidget)
+        self.labelmain.setGeometry(QtCore.QRect(0, 0, 700, 40))
+        self.labelmain.setText("Signature 6축 센서 SMART 분석기")
+        self.labelmain.setStyleSheet("Color: white;"
+                                     "background-color: black;")
+        self.labelmain.setFont(QtGui.QFont("", 16))
+        self.labelmain.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Command Window 제목
+        self.labelcommand = QtWidgets.QLabel(self.centralwidget)
+        self.labelcommand.setGeometry(QtCore.QRect(10, 60, 680, 30))
+        self.labelcommand.setText("COMMAND Window")
+
+        # Command Window
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setGeometry(QtCore.QRect(10, 85, 680, 40))
+        self.label.setText("'파일 불러오기'를 눌러 파일을 선택해주세요 \n")
+        self.label.setStyleSheet("background-color: white;"
+                                 "border-style: solid;"
+                                 "border-width: 1px;"
+                                 "border-color: black;"
+                                 "border-radius: 5px")
+
+        # 파일불러오기 푸쉬버튼
+        self.pushButton = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton.setGeometry(QtCore.QRect(10, 160, 150, 40))
+        self.pushButton.setStyleSheet("background-color: rgb(230,230,255);"
+                                      "border-style: solid;"
+                                      "border-width: 1.5px;"
+                                      "border-color: black;"
+                                      "border-radius: 10px")
+        self.pushButton.setFont(QtGui.QFont("", 10))
+
+        # 불러온 파일 리스트 제목
+        self.labelopendList = QtWidgets.QLabel(self.centralwidget)
+        self.labelopendList.setGeometry(QtCore.QRect(10, 200, 680, 30))
+        self.labelopendList.setText("불러온 파일 리스트")
+
+        # 불러온 파일 리스트
+        self.listWidget = QtWidgets.QListWidget(self.centralwidget)
+        self.listWidget.setGeometry(QtCore.QRect(10, 225, 680, 200))
+        self.listWidget.setStyleSheet("background-color: white;"
+                                      "border-style: solid;"
+                                      "border-width: 1px;"
+                                      "border-color: black;"
+                                      "border-radius: 5px")
+
+        # 전체파일 분석 푸쉬버튼
+        self.AnalysisButton = QtWidgets.QPushButton(self.centralwidget)
+        self.AnalysisButton.setGeometry(QtCore.QRect(580, 630, 100, 50))
+        self.AnalysisButton.setStyleSheet("background-color: rgb(215,215,215);"
+                                          "border-style: solid;"
+                                          "border-width: 2px;"
+                                          "border-color: black;"
+                                          "border-radius: 10px")
+
+        # adding signal and slot
+        self.pushButton.clicked.connect(self.OpenNListFiles)
+        self.AnalysisButton.clicked.connect(self.AnalaysisFiles)
+
+        self.setCentralWidget(self.centralwidget)
+        self.ReTranslateUi(self.centralwidget)
+        QtCore.QMetaObject.connectSlotsByName(self.centralwidget)
+
+        groupBox_x = QGroupBox("X축 parameter", self)
+        groupBox_x.move(10, 440)
+        groupBox_x.resize(120, 90)
+
+        groupBox_y = QGroupBox("Y축 parameter", self)
+        groupBox_y.move(140, 440)
+        groupBox_y.resize(300, 230)
+
+        self.radio_x_Time = QRadioButton("Time(s)", self)
+        self.radio_x_RPM = QRadioButton("RPM", self)
+        self.radio_x_DataN = QRadioButton("데이터수(N)", self)
+
+        self.radio_y_CurrentRPM = QRadioButton("Current RPM", self)
+        self.radio_y_RequestRPM = QRadioButton("Request RPM", self)
+        self.radio_y_UBcurrent = QRadioButton("UB Current", self)
+        self.radio_y_FxVib = QRadioButton("FX 진동", self)
+        self.radio_y_FyVib = QRadioButton("FY 진동", self)
+        self.radio_y_FzVib = QRadioButton("FZ 진동", self)
+        self.radio_y_RyVib = QRadioButton("RY 진동", self)
+        self.radio_y_RzVib = QRadioButton("RZ 진동", self)
+        self.radio_y_FastUB = QRadioButton("Fast UB", self)
+        self.radio_y_LoadLevel = QRadioButton("Load Level", self)
+        self.radio_y_LoadLevelValue = QRadioButton("Load Level Value", self)
+        self.radio_y_WaterFrequency = QRadioButton("Water Frequency", self)
+        self.radio_y_PumpMotorCurrentRPM = QRadioButton("Pump Motor Current RPM", self)
+        self.radio_y_PumpMotorTargetRPM = QRadioButton("Pump Motor Target RPM", self)
+        self.radio_y_DaxisCurrent = QRadioButton("D축 전류", self)
+        self.radio_y_QaxisCurrent = QRadioButton("Q축 전류", self)
+        self.radio_y_TubVib = QRadioButton("Tub 진동[mm]", self)
+        self.radio_y_CabinetVib = QRadioButton("Cabinet 진동[um]", self)
+
+
+        base_layout = QGridLayout(self)
+        grp_x_layout = QGridLayout()
+        grp_y_layout = QGridLayout()
+        groupBox_x.setLayout(grp_x_layout)
+        groupBox_y.setLayout(grp_y_layout)
+
+        grp_x_layout.addWidget(self.radio_x_Time, 1, 1)
+        grp_x_layout.addWidget(self.radio_x_RPM, 2, 1)
+        grp_x_layout.addWidget(self.radio_x_DataN, 3, 1)
+
+        grp_y_layout.addWidget(self.radio_y_UBcurrent, 1, 1)
+        grp_y_layout.addWidget(self.radio_y_CurrentRPM, 2, 1)
+        grp_y_layout.addWidget(self.radio_y_RequestRPM, 3, 1)
+        grp_y_layout.addWidget(self.radio_y_FxVib, 4, 1)
+        grp_y_layout.addWidget(self.radio_y_FyVib, 5, 1)
+        grp_y_layout.addWidget(self.radio_y_FzVib, 6, 1)
+        grp_y_layout.addWidget(self.radio_y_RyVib, 7, 1)
+        grp_y_layout.addWidget(self.radio_y_RzVib, 8, 1)
+        grp_y_layout.addWidget(self.radio_y_FastUB, 9, 1)
+
+        grp_y_layout.addWidget(self.radio_y_LoadLevel, 1, 2)
+        grp_y_layout.addWidget(self.radio_y_LoadLevelValue, 2, 2)
+        grp_y_layout.addWidget(self.radio_y_WaterFrequency, 3, 2)
+        grp_y_layout.addWidget(self.radio_y_PumpMotorCurrentRPM, 4, 2)
+        grp_y_layout.addWidget(self.radio_y_PumpMotorTargetRPM, 5, 2)
+        grp_y_layout.addWidget(self.radio_y_DaxisCurrent, 6, 2)
+        grp_y_layout.addWidget(self.radio_y_QaxisCurrent, 7, 2)
+        grp_y_layout.addWidget(self.radio_y_TubVib, 8, 2)
+        grp_y_layout.addWidget(self.radio_y_CabinetVib, 9, 2)
+
+        base_layout.addWidget(groupBox_x)
+        base_layout.addWidget(groupBox_y)
+
+        self.radio_x_Time.setChecked(True)
+        self.radio_y_CurrentRPM.setChecked(True)
+        xAxisSignal = "TIME"
+        yAxisSignal = "Current RPM"
+
+        self.radio_x_Time.clicked.connect(self.radioButtonClickedX)
+        self.radio_x_RPM.clicked.connect(self.radioButtonClickedX)
+        self.radio_x_DataN.clicked.connect(self.radioButtonClickedX)
+
+        self.radio_y_UBcurrent.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_CurrentRPM.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_RequestRPM.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_FxVib.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_FyVib.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_FzVib.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_RyVib.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_FastUB.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_LoadLevel.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_LoadLevelValue.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_WaterFrequency.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_PumpMotorCurrentRPM.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_PumpMotorTargetRPM.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_DaxisCurrent.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_QaxisCurrent.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_TubVib.clicked.connect(self.radioButtonClickedY)
+        self.radio_y_CabinetVib.clicked.connect(self.radioButtonClickedY)
+
+
+        self.statusBar = QStatusBar(self)
+        self.setStatusBar(self.statusBar)
+
+    def radioButtonClickedX(self):
+        global xAxisSignal
+        if self.radio_x_Time.isChecked():
+            msg = "X축 Time(s)"
+            xAxisSignal = "TIME"
+        elif self.radio_x_RPM.isChecked():
+            msg = "X축 RPM"
+            xAxisSignal = "RPM"
+        elif self.radio_x_DataN.isChecked():
+            msg = "X축 데이터수(N)"
+            xAxisSignal = "DATA"
+        else:
+            msg = ""
+        self.statusBar.showMessage(msg + "선택 됨")
+
+    def radioButtonClickedY(self):
+        global yAxisSignal
+        yAxisSignal = "RPM"
+        if self.radio_y_UBcurrent.isChecked():
+            msg = "Y축 UB Current"
+            yAxisSignal = "UB CURRENT"
+        elif self.radio_y_CurrentRPM.isChecked():
+            msg = "Y축 Current RPM"
+            yAxisSignal = "Current RPM"
+        elif self.radio_y_RequestRPM.isChecked():
+            msg = "Y축 Request RPM"
+            yAxisSignal = "Request RPM"
+        elif self.radio_y_FxVib.isChecked():
+            msg = "Y축 FX진동"
+            yAxisSignal = "FX Vibration"
+        elif self.radio_y_FyVib.isChecked():
+            msg = "Y축 FY진동"
+            yAxisSignal = "FY Vibration"
+        elif self.radio_y_FzVib.isChecked():
+            msg = "Y축 FZ진동"
+            yAxisSignal = "FZ Vibration"
+        elif self.radio_y_RyVib.isChecked():
+            msg = "Y축 RY진동"
+            yAxisSignal = "RY Vibration"
+        elif self.radio_y_FastUB.isChecked():
+            msg = "Y축 Fast UB"
+            yAxisSignal = "Fast UB"
+        elif self.radio_y_LoadLevel.isChecked():
+            msg = "Y축 포량감지레벨"
+            yAxisSignal = "Load Level"
+        elif self.radio_y_LoadLevelValue.isChecked():
+            msg = "Y축 포량감지값"
+            yAxisSignal = "Load Level Value"
+        elif self.radio_y_PumpMotorCurrentRPM.isChecked():
+            msg = "Y축 펌프 현재 RPM"
+            yAxisSignal = "Pump Current RPM"
+        elif self.radio_y_PumpMotorTargetRPM.isChecked():
+            msg = "Y축 펌프 목표 RPM"
+            yAxisSignal = "Pump Target RPM"
+        elif self.radio_y_DaxisCurrent.isChecked():
+            msg = "Y축 D축 전류"
+            yAxisSignal = "'D'Axis Current"
+        elif self.radio_y_QaxisCurrent.isChecked():
+            msg = "Y축 Q축 전류"
+            yAxisSignal = "'Q'Axis Current"
+        elif self.radio_y_TubVib.isChecked():
+            msg = "Y축 Tub 진동[mm]"
+            yAxisSignal = "Tub Vibration[mm]"
+        elif self.radio_y_CabinetVib.isChecked():
+            msg = "Y축 Cabinet 진동[mm]"
+            yAxisSignal = "Cabinet Vibration[um]"
+        else:
+            msg = ""
+        self.statusBar.showMessage(msg + "선택 됨")
+
+    # UI내 Label Parameter 삽입
+    def ReTranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "Smart File 분석 프로그램"))
+        self.pushButton.setText(_translate("MainWindow", "파일 불러오기"))
+        self.AnalysisButton.setText(_translate("MainWindow", "전체파일 분석"))
+
+    # Pushbutton 누를 시 작동 로직
+    def OpenNListFiles(self):
+        global file_path, head
+
+        root = tk.Tk()
+        root.withdraw()
+        # file_path = filedialog.askopenfilename()  # 파일선택 GUI열기 (Windows기본창)
+
+        file_path = filedialog.askopenfilename(multiple=True)  # 파일선택 GUI열기 (Windows기본창) - Multiple기능 추가
+        tn = len(file_path)  # 파일 갯수 카운팅
+
+        for i in range(tn):
+            head, tail1 = os.path.split(file_path[i])  # 파일위치(path)와 파일명(tail) 구분시키기
+            if i == 0:
+                tail = [tail1, ]  # String을 리스트형으로 만들어 삽입해야 여러개 데이터를 넣을 수 있음
+            else:
+                tail.append(tail1)  # 리스트형데이터에 추가로 String데이터 넣기
+
+        if len(file_path) == 0:
+            tail = ""  # 선택이 취소 되었을 경우 파일리스트 Clear
+            self.listWidget.clear()  # List항목 삭제
+            QListWidgetItem(tail, self.listWidget)  # List항목 입력
+            self.label.setText("파일이 선택되지 않았습니다. \n"
+                               "다시 '파일 불러오기'를 눌러 파일을 선택해주세요")
+        else:
+            self.listWidget.clear()  # List항목 삭제
+            # QListWidgetItem기능에서는 String만 삽입가능하므로 리스트형 데이터를 하나씩 String으로 쪼개어 넣어줌
+            for j in range(tn):
+                filename = tail[j]
+                QListWidgetItem(filename, self.listWidget)
+            self.label.setText("파일이 선택되었습니다 \n")
+
+        # 파일명 리스트내 파일 지정해서 더블클릭하면 이벤트 발생시키는 명령
+        self.listWidget.itemDoubleClicked.connect(self.filelistdoubleclick)
+
+    # 리스트 파일을 더블 클릭할 경우 이벤트 발생(그래프 그리기)
+    def filelistdoubleclick(self):
+        global head, item
+        self.label.setText("파일이 더블클릭되어 그래프를 그립니다 \n")
+        item = str(self.listWidget.currentItem().text())
+        filename = [head + "/" + item, ]  # 경로+파일명 재설정
+        FileAnalyzer(filename)
+
+    # 전체 파일 분석 이벤트 발생
+    def AnalaysisFiles(self):
+        self.label.setText("전체 파일 분석은 아직 구현되지 않았습니다 \n")
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    mywindow = MyWindow()
+    mywindow.show()
+    app.exec_()
