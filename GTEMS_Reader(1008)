@@ -1,0 +1,205 @@
+import sys
+import os
+import tkinter as tk
+from tkinter import filedialog
+from tkinter import messagebox
+import numpy as np
+import matplotlib.pylab as plt
+import matplotlib.font_manager as fm
+import matplotlib.cm as get_cmap
+import addcopyfighandler
+import mplcursors
+import pandas as pd
+import datetime
+import openpyxl
+
+
+def RangeSearcher(d): # 한개의 파일내에 여러번의 Run을 했을 경우 모든 Run을 분리함
+    SPosition=[0, ]
+    SCount = 1
+    EPosition=[0, ]
+    ECount = 1
+    EndDetectSignal = 0
+
+    UESignal = 0
+    for i in range(len(d), 2, -1):
+        if d[i-1, 2] == 5 and d[i - 2, 2] == 6:
+            if ECount == 1:
+                EPosition=[i, ]
+                ECount = ECount + 1
+                EndDetectSignal = EndDetectSignal + 1
+                UESignal = [0, ]
+            else:
+                EPosition.append(i)
+                ECount = ECount + 1
+                UESignal.append(0)
+        elif d[i-1, 2] == 0 and d[i - 2, 2] >= 1:
+            if ECount == 1:
+                EPosition=[i, ]
+                ECount = ECount + 1
+                EndDetectSignal = EndDetectSignal + 1
+                UESignal = [1, ]
+            else:
+                EPosition.append(i)
+                ECount = ECount + 1
+                UESignal.append(1)
+
+        if d[i-1, 2] == 22 and d[i - 2, 2] == 23 and EndDetectSignal == 1:
+            if SCount == 1:
+                SPosition = [i, ]
+                SCount = SCount + 1
+            else:
+                SPosition.append(i)
+                SCount = SCount + 1
+
+    if len(SPosition) < len(EPosition):
+        EPosition=EPosition[:-1]
+
+    return SPosition, EPosition, UESignal
+
+def FindValues(d, sp, ep, UESignal): # 각 탈수 Try에서 진입시간, 터브 캐비넷진동값을 추출함
+    MaxTubVib = max(d[sp:ep, 3])
+    MaxCabinetVib = max(d[sp:ep, 4]) * 1000
+    if UESignal == 0:
+        for i in range(ep, sp, -1):
+            if d[i, 1] >= max(d[sp:ep, 1]):
+                MaxrpmPoint = i
+                break
+
+        SteadyTubVib = d[MaxrpmPoint, 3]
+        SteadyCabinetVib = d[MaxrpmPoint, 4] *1000
+
+        for i in range(MaxrpmPoint, sp, -1):
+            if d[i, 1] <= 108:
+                rpm108Point = i
+                break
+        EntryTime=(rpm108Point-sp)
+
+    elif UESignal == 1:
+        SteadyTubVib = 0
+        SteadyCabinetVib = 0
+        EntryTime = (ep - sp) * 1000
+
+    Result = [EntryTime, MaxTubVib, SteadyCabinetVib, MaxCabinetVib, SteadyTubVib]
+    return Result
+
+def CreateFolder(directory):
+    try:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    except OSError:
+        print('Error: Creating directory.  ' + directory)
+
+
+
+# def show_annotation(sel):
+#     xp= 1; yp= 1
+#     ind = int(sel.target.index)
+#     # frac = sel.target.index - ind
+#     x, y = sel.target
+#     # sel.annotation.set_text(f'Data:{sel.artist.get_label()}\nIndex:{ind} \nX:{x:.3f} Y:{y:.3f}')
+#     if xp == 0 and yp ==0:
+#         sel.annotation.set_text(f'Index:{ind} \nX:{x:.0f} Y:{y:.0f}')
+#     elif xp == 1 and yp ==0:
+#         sel.annotation.set_text(f'Index:{ind} \nX:{x:.1f} Y:{y:.0f}')
+#     elif xp == 0 and yp ==1:
+#         sel.annotation.set_text(f'Index:{ind} \nX:{x:.0f} Y:{y:.1f}')
+#     elif xp == 1 and yp ==1:
+#         sel.annotation.set_text(f'Index:{ind} \nX:{x:.1f} Y:{y:.1f}')
+#     # elif xp == 0 and yp ==3:
+#     #     sel.annotation.set_text(f'Index:{ind} \nX:{x:.0f} Y:{y:.3f}')
+#     # elif xp == 1 and yp ==3:
+#     #     sel.annotation.set_text(f'Index:{ind} \nX:{x:.1f} Y:{y:.3f}')
+#     else:
+#         sel.annotation.set_text(f'Index:{ind} \nX:{x:.3f} Y:{y:.3f}')
+
+os.getcwd()  # 현재의 파일경로 획득
+root = tk.Tk()
+root.withdraw()
+# file_path = filedialog.askopenfilename()  # 파일선택 GUI열기 (Windows기본창)
+
+file_path = filedialog.askdirectory()  # 파일선택 GUI열기 (Windows기본창) - Multiple기능 추가
+tn = len(file_path)  # 파일 갯수 카운팅
+
+file_list = os.listdir(file_path)
+file_list.remove('_Results Out')
+
+for i in range(0, len(file_list), 1):
+    filename=file_path + '/' + file_list[i] + '/' + 'LogFile.dat'
+    f = open(filename, "r")  # 데이터 읽기
+    data = np.genfromtxt(f)  # data변수에 데이터 쓰기
+    f.close()
+
+    TotalNum = len(data)
+    if len(data[1, :]) == 39:
+        d = np.zeros((TotalNum, 5))
+        d[:, 0] = np.arange(0, TotalNum * 1, 1)  # Time
+        d[:, 1] = data[:, 35]  # RPM
+        d[:, 2] = data[:, 36]  # 남은시간
+        d[:, 3] = data[:, 37]  # Tub진동
+        d[:, 4] = data[:, 38]  # Cabinbet진동
+        # 35 : RPM , 36 : 남은시간 , 37 : Tub진동 , 38 : Cabinet진동
+    elif len(data[1, :]) == 8:
+        d = np.zeros((TotalNum, 5))
+        d[:, 0] = np.arange(0, TotalNum * 1, 1)  # Time
+        d[:, 1] = data[:, 4]  # RPM
+        d[:, 2] = data[:, 5]  # 남은시간
+        d[:, 3] = data[:, 6]  # Tub진동
+        d[:, 4] = data[:, 7]  # Cabinbet진동
+
+    SpinEachRange = RangeSearcher(d)
+    TotalNum = len(SpinEachRange[0])
+    Result = np.zeros((TotalNum, 5))
+    FileNameinFile = ['', ]
+
+    for j in range(0, len(SpinEachRange[0]), 1):
+        k = len(SpinEachRange[0])-j-1
+        Result[j, ] = FindValues(d, SpinEachRange[0][k], SpinEachRange[1][k], SpinEachRange[2][k])
+        if j == 0:
+            FileNameinFile[j] = file_list[i]
+        else:
+            FileNameinFile.append(file_list[i])
+
+    FileNameinFile1 = pd.DataFrame(FileNameinFile)
+
+
+    # FileNames = np.zeros((len(FileNameinFile[:, 1], FileNameinFile[0, :])))
+
+    if i == 0:
+        Results = np.zeros((len(Result[:, 1]), len(Result[0, :])))
+        Results = Result
+        FileNames = FileNameinFile1
+    else:
+        Results = np.append(Results, Result, axis=0)
+        FileNames = pd.concat([FileNames, FileNameinFile1])
+
+CreateFolder(file_path+'/'+'_Results Out')
+Results1 = pd.DataFrame(Results)
+FileNames.columns = ['Filename']
+FileNamesR=FileNames.reset_index()
+Results1.columns = ['진입시간[sec]','Tub최대진동[mm]','Cabinet정상진동[um]','Cabinet최대진동[um]','Tub정상진동[mm]']
+Results2 = pd.concat([FileNamesR, Results1], axis=1)
+
+now = datetime.datetime.now() # 현재시간
+nowDatetime = now.strftime('%Y-%m-%d_%H_%M_%S')
+
+xlsx_dir = file_path + '/'+'_Results Out' + '/' + nowDatetime + '_' + file_list[0] + '~' + file_list[-1] +'.xlsx'
+xolsx_dir = file_path + '/'+'_Results Out' + '/' + nowDatetime + '_' + file_list[0] + '~' + file_list[-1] +'.xolsx'
+
+with pd.ExcelWriter(xlsx_dir) as writer:
+    Results2.to_excel(writer, sheet_name = 'Result')
+os.rename(xlsx_dir, xolsx_dir)
+
+
+# fig, ax = plt.subplots()
+#
+# ax.plot(d[:, 0], d[:, 1]/10, label='RPM', color='blue')
+# ax.plot(d[:, 0], d[:, 2], label='Remain Time', color='red')
+# ax.plot(d[:, 0], data[:, 22], label='22', color='green')
+# ax.plot(d[:, 0], data[:, 23], label='23', color='black')
+# ax.legend()
+# cursor = mplcursors.cursor(multiple=True)
+# cursor.connect("add", show_annotation)
+# plt.show()
+
+print("분석완료")
